@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>이어폰 블라인드 사운드 테스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css">
+<style>
+  :root{
+    --bg:#f7f5f0;
+    --panel:#ffffff;
+    --panel-line:#dedad2;
+    --red:#a50034;
+    --red-glow:#c40041;
+    --text:#1c1b1a;
+    --muted:#5a5854;
+    --mono:'IBM Plex Mono', monospace;
+    --kr:'NanumSquare', 'Malgun Gothic', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    width:100%; height:100%; background:var(--bg); color:var(--text);
+    font-family:var(--kr); overflow:hidden;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  }
+  button{font-family:inherit; border:none; background:none; color:inherit; cursor:pointer;}
+
+  .stage{
+    display:flex; flex-direction:column; width:100vw; height:100vh;
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.8vh 2.4vw;
+    border-bottom:1px solid var(--panel-line);
+  }
+  .brand{display:flex; align-items:baseline; gap:1vw;}
+  .brand .eyebrow{
+    font-family:var(--mono); font-size:1.5vh; letter-spacing:0.2em; font-weight:600;
+    color:var(--red-glow); text-transform:uppercase;
+  }
+  .brand h1{font-size:3vh; font-weight:800; letter-spacing:-0.01em;}
+  .reset-btn{
+    display:flex; align-items:center; gap:0.6vw;
+    font-family:var(--mono); font-size:1.7vh; font-weight:600; color:var(--muted);
+    padding:1.2vh 1.6vw; border:2px solid var(--panel-line); border-radius:999px;
+    transition:border-color .2s, color .2s;
+  }
+  .reset-btn:active{border-color:var(--red); color:var(--red-glow);}
+
+  /* ---------- player (top half) ---------- */
+  .player{
+    flex:0 0 54%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2.4vh;
+    position:relative;
+    background:
+      radial-gradient(ellipse 60% 70% at 50% 40%, rgba(165,0,52,0.08), transparent 70%),
+      var(--bg);
+    border-bottom:1px solid var(--panel-line);
+  }
+  .wave-wrap{
+    width:78vw; height:22vh;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #wave{ width:100%; height:100%; display:block; }
+
+  .transport{
+    display:flex; align-items:center; gap:2.2vw;
+  }
+  .play-btn{
+    width:10vh; height:10vh; border-radius:50%;
+    background:linear-gradient(160deg, var(--red), #6e0025);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 1px rgba(0,0,0,0.04), 0 1.5vh 3vh -1vh rgba(165,0,52,0.45);
+    transition:transform .15s ease;
+  }
+  .play-btn:active{transform:scale(0.93);}
+  .play-btn svg{width:3.8vh; height:3.8vh; fill:#ffffff;}
+
+  .track-meta{display:flex; flex-direction:column; gap:0.8vh;}
+  .track-meta .name{font-size:3vh; font-weight:800;}
+  .track-meta .sub{
+    font-family:var(--mono); font-size:1.7vh; color:var(--muted); letter-spacing:0.03em;
+  }
+  .badge{
+    font-family:var(--mono); font-size:1.4vh; font-weight:600; color:var(--red-glow);
+    border:1px solid rgba(196,0,65,0.35); background:rgba(196,0,65,0.06); border-radius:5px;
+    padding:0.3vh 0.8vh; margin-left:0.8vh; letter-spacing:0.06em;
+  }
+
+  .instruction{
+    position:absolute; bottom:2vh; left:0; right:0; text-align:center;
+    font-size:2.1vh; font-weight:600; color:var(--muted);
+  }
+  .instruction b{color:var(--red); font-weight:800;}
+
+  /* ---------- vote area (bottom half) ---------- */
+  .votes{
+    flex:1 1 46%;
+    display:flex; padding:2.4vh 2.4vw; gap:2vw;
+  }
+  .card{
+    flex:1; position:relative; border-radius:2vh;
+    background:var(--panel); border:2px solid var(--panel-line);
+    box-shadow:0 0.6vh 1.4vh -0.8vh rgba(28,27,26,0.15);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:1.6vh; overflow:hidden;
+    transition:border-color .2s, transform .12s ease;
+  }
+  .card:active{transform:scale(0.98);}
+  .card.selected{border-color:var(--red);}
+  .fill{
+    position:absolute; left:0; right:0; bottom:0; height:0%;
+    background:linear-gradient(180deg, rgba(165,0,52,0.0), rgba(165,0,52,0.16));
+    transition:height .45s cubic-bezier(.2,.8,.2,1);
+    pointer-events:none;
+  }
+  .letter{
+    font-size:11vh; font-weight:800; line-height:1; letter-spacing:-0.02em;
+    color:var(--text);
+    position:relative; z-index:1;
+  }
+  .label{
+    font-family:var(--mono); font-size:1.8vh; font-weight:600; color:var(--muted);
+    letter-spacing:0.16em; position:relative; z-index:1;
+  }
+  .count{
+    font-family:var(--mono); font-size:3vh; font-weight:700; color:var(--red-glow);
+    position:relative; z-index:1;
+  }
+  .pulse{
+    position:absolute; inset:0; border-radius:2vh;
+    box-shadow:0 0 0 0 rgba(165,0,52,0.5);
+  }
+  @keyframes ringPulse{
+    0%{box-shadow:0 0 0 0 rgba(165,0,52,0.5);}
+    100%{box-shadow:0 0 0 3vh rgba(165,0,52,0);}
+  }
+  .ring-anim{animation:ringPulse .55s ease-out;}
+
+  /* ---------- rotate hint ---------- */
+  .rotate-hint{
+    display:none; position:fixed; inset:0; background:var(--bg); z-index:50;
+    flex-direction:column; align-items:center; justify-content:center; gap:2vh; text-align:center; padding:4vh;
+  }
+  .rotate-hint svg{width:8vh; height:8vh; fill:var(--red-glow); animation:rotateIcon 1.6s ease-in-out infinite;}
+  @keyframes rotateIcon{0%,100%{transform:rotate(0deg);}50%{transform:rotate(90deg);}}
+  .rotate-hint p{font-size:2.8vh; font-weight:800;}
+  .rotate-hint span{font-family:var(--mono); font-size:1.9vh; color:var(--muted);}
+  @media (orientation:portrait){
+    .rotate-hint{display:flex;}
+    .stage{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="rotate-hint">
+  <svg viewBox="0 0 24 24"><path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zM19.14 12c0-3.31-2.69-6-6-6h-6c-3.31 0-6 2.69-6 6s2.69 6 6 6h6c3.31 0 6-2.69 6-6zm-12 4c-2.21 0-4-1.79-4-4s1.79-4 4-4h6c2.21 0 4 1.79 4 4s-1.79 4-4 4h-6z"/></svg>
+  <p>화면을 가로로 돌려주세요</p>
+  <span>ROTATE TO LANDSCAPE · 스탠바이미를 눕혀서 사용해요</span>
+</div>
+
+<div class="stage">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="eyebrow">BLIND SOUND TEST</span>
+      <h1>이어폰 블라인드 사운드 테스트</h1>
+    </div>
+    <button class="reset-btn" id="resetBtn">↺ 결과 초기화</button>
+  </div>
+
+  <div class="player">
+    <div class="wave-wrap"><canvas id="wave"></canvas></div>
+    <div class="transport">
+      <button class="play-btn" id="playBtn" aria-label="재생">
+        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <div class="track-meta">
+        <div class="name">The Best Is Yet to Come <span class="badge">LOOP</span></div>
+        <div class="sub">Michael Bublé · 동일한 음원을 세 이어폰으로 번갈아 들어보세요</div>
+      </div>
+    </div>
+    <div class="instruction">이어폰 <b>A → B → C</b> 순서로 착용해 들어본 뒤, 가장 마음에 드는 소리를 아래에서 터치하세요</div>
+    <!-- 화면에는 보이지 않고 소리만 추출해서 재생 + 파형에 연결하는 미디어 엘리먼트 -->
+    <video id="videoSrc" style="display:none" loop playsinline webkit-playsinline="true"></video>
+    <audio id="audioSrc" style="display:none" loop></audio>
+  </div>
+
+  <div class="votes" id="votes">
+    <div class="card" data-key="A">
+      <div class="fill" id="fillA"></div>
+      <div class="pulse" id="pulseA"></div>
+      <div class="letter">A</div>
+      <div class="label">EARPHONE A</div>
+      <div class="count"><span id="countA">0</span>표</div>
+    </div>
+    <div class="card" data-key="B">
+      <div class="fill" id="fillB"></div>
+      <div class="pulse" id="pulseB"></div>
+      <div class="letter">B</div>
+      <div class="label">EARPHONE B</div>
+      <div class="count"><span id="countB">0</span>표</div>
+    </div>
+    <div class="card" data-key="C">
+      <div class="fill" id="fillC"></div>
+      <div class="pulse" id="pulseC"></div>
+      <div class="letter">C</div>
+      <div class="label">EARPHONE C</div>
+      <div class="count"><span id="countC">0</span>표</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ================= 샘플 음원 (플레이스홀더) =================
+   실제 mp3로 교체하려면 아래 playSample()/스케줄러 대신
+   <audio id="player" src="파일경로.mp3"></audio> 를 추가하고
+   audioCtx.createMediaElementSource(playerEl) 로 analyser에 연결하면 됩니다. */
+
+const canvas = document.getElementById('wave');
+const ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+}
+fitCanvas();
+window.addEventListener('resize', fitCanvas);
+
+/* 실제 동영상/음원 파일을 쓰려면 아래 경로만 채우면 됩니다.
+   AUDIO_PATH가 채워져 있으면 mp3를, 비어있고 VIDEO_PATH만 있으면 영상 소리를 씁니다.
+   둘 다 비어있으면 합성 데모 사운드로 대체 재생됩니다.
+   같은 폴더(github pages 등)에 파일을 올리고 파일명만 넣어주면 자동으로
+   화면에는 안 보이고 소리만 추출되어 재생 + 파형에 반응합니다. */
+const AUDIO_PATH = 'sample-track.mp3';
+const VIDEO_PATH = '';
+
+let audioCtx, analyser, masterGain, dataArray, source;
+let playing = false;
+let schedulerTimer = null;
+let noteIndex = 0;
+let mediaMode = 'synth'; // 'synth' | 'audio' | 'video'
+const videoEl = document.getElementById('videoSrc');
+const audioElTag = document.getElementById('audioSrc');
+// 잔잔한 펜타토닉 루프 (AUDIO_PATH/VIDEO_PATH가 둘 다 비어있을 때 쓰는 플레이스홀더 샘플)
+const notes = [261.63, 311.13, 349.23, 392.00, 466.16, 392.00, 349.23, 311.13];
+
+function initAudio(){
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 256;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.9;
+  masterGain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
+  if (AUDIO_PATH){
+    mediaMode = 'audio';
+    audioElTag.src = AUDIO_PATH;
+    const audioSource = audioCtx.createMediaElementSource(audioElTag);
+    audioSource.connect(masterGain);
+  } else if (VIDEO_PATH){
+    mediaMode = 'video';
+    videoEl.src = VIDEO_PATH;
+    videoEl.loop = true;
+    const videoSource = audioCtx.createMediaElementSource(videoEl);
+    videoSource.connect(masterGain); // 화면 출력은 없이 소리만 analyser/스피커로 흐름
+  }
+}
+
+function playNote(freq, time){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 2200;
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, time);
+  gain.gain.linearRampToValueAtTime(1, time + 0.04);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+  osc.connect(filt); filt.connect(gain); gain.connect(masterGain);
+  osc.start(time);
+  osc.stop(time + 0.55);
+}
+
+function scheduler(){
+  const now = audioCtx.currentTime;
+  playNote(notes[noteIndex % notes.length], now);
+  noteIndex++;
+  schedulerTimer = setTimeout(scheduler, 340);
+}
+
+function drawWave(){
+  requestAnimationFrame(drawWave);
+  const w = canvas.width, h = canvas.height;
+  ctx2d.clearRect(0,0,w,h);
+  if (!analyser) return;
+  analyser.getByteFrequencyData(dataArray);
+  const barCount = 40;
+  const gap = w / barCount;
+  const barW = gap * 0.45;
+  for(let i=0;i<barCount;i++){
+    const idx = Math.floor(i * (dataArray.length / barCount));
+    const v = playing ? (dataArray[idx] / 255) : 0.06;
+    const barH = Math.max(h*0.03, v * h * 0.85);
+    const x = i * gap + (gap - barW)/2;
+    const y = (h - barH)/2;
+    const grad = ctx2d.createLinearGradient(0, y, 0, y+barH);
+    grad.addColorStop(0, '#ff5470');
+    grad.addColorStop(1, '#a50034');
+    ctx2d.fillStyle = grad;
+    const r = barW/2;
+    ctx2d.beginPath();
+    ctx2d.moveTo(x, y+r);
+    ctx2d.arcTo(x, y, x+r, y, r);
+    ctx2d.arcTo(x+barW, y, x+barW, y+r, r);
+    ctx2d.arcTo(x+barW, y+barH, x+barW-r, y+barH, r);
+    ctx2d.arcTo(x, y+barH, x, y+barH-r, r);
+    ctx2d.closePath();
+    ctx2d.fill();
+  }
+}
+drawWave();
+
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+const pauseIcon = document.getElementById('pauseIcon');
+
+playBtn.addEventListener('click', () => {
+  initAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  playing = !playing;
+  playIcon.style.display = playing ? 'none' : 'block';
+  pauseIcon.style.display = playing ? 'block' : 'none';
+
+  if (mediaMode === 'audio'){
+    if (playing) audioElTag.play(); else audioElTag.pause();
+    return;
+  }
+  if (mediaMode === 'video'){
+    if (playing) videoEl.play(); else videoEl.pause();
+    return;
+  }
+  if (playing){
+    noteIndex = 0;
+    scheduler();
+  } else {
+    clearTimeout(schedulerTimer);
+  }
+});
+
+/* ================= 투표 (세션 내에서만 표시, 저장 안 함) ================= */
+const counts = { A:0, B:0, C:0 };
+
+function renderVotes(){
+  const max = Math.max(1, counts.A, counts.B, counts.C);
+  ['A','B','C'].forEach(k=>{
+    document.getElementById('count'+k).textContent = counts[k];
+    document.getElementById('fill'+k).style.height = (counts[k]/max*100) + '%';
+  });
+}
+
+document.getElementById('votes').addEventListener('click', (e)=>{
+  const card = e.target.closest('.card');
+  if(!card) return;
+  const key = card.dataset.key;
+  counts[key]++;
+  renderVotes();
+  const pulse = document.getElementById('pulse'+key);
+  pulse.classList.remove('ring-anim');
+  void pulse.offsetWidth;
+  pulse.classList.add('ring-anim');
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected'));
+  card.classList.add('selected');
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  counts.A = 0; counts.B = 0; counts.C = 0;
+  renderVotes();
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected'));
+});
+
+renderVotes();
+</script>
+</body>
+</html>
